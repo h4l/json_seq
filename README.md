@@ -10,7 +10,7 @@ json-seq format described in [RFC 7464].
 
 ```ts
 // examples/print_stream_contents.ts
-import { JsonSequenceDecoderStream } from "https://deno.land/x/json_seq@unpublished/mod.ts";
+import { JsonSequenceDecoderStream } from "https://deno.land/x/json_seq@v0.1.0/mod.ts";
 import { readableStreamFromReader } from "https://deno.land/std@0.117.0/streams/conversion.ts";
 
 const jsonStream = readableStreamFromReader(Deno.stdin)
@@ -23,7 +23,7 @@ for await (const json of jsonStream) {
 
 ```sh
 $ echo -e '\x1E{"message": "hi"}\n\x1E{"message": "bye"}\n' \
-  | deno run --import-map=import_map.json examples/print_stream_contents.ts
+  | deno run examples/print_stream_contents.ts
 JSON value: { message: "hi" }
 JSON value: { message: "bye" }
 ```

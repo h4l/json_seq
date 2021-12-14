@@ -43,7 +43,7 @@ test:
 
 ensure-licensed:
 > UNLICENSED="$$(\
-  find . -name '*.ts' -exec \
+  find . -name '*.ts' -not -path './examples/*' -exec \
     grep -FL '// Copyright 2021 Hal Blackburn. All rights reserved. MIT license.' {} + \
     || test $$? -eq 1 \
   )"

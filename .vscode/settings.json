@@ -14,5 +14,6 @@
   },
   "[markdown]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
-  }
+  },
+  "deno.importMap": "import_map.json"
 }

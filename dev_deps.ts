@@ -1,3 +1,4 @@
+// Copyright 2021 Hal Blackburn. All rights reserved. MIT license.
 export {
   assert,
   assertEquals,

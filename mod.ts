@@ -7,7 +7,7 @@
  * [RFC 7464]: https://datatracker.ietf.org/doc/html/rfc7464
  */
 
-export const VERSION = "0.1.0"; // managed by standard-version, do not modify
+export const VERSION = "0.1.1"; // managed by standard-version, do not modify
 export const JSON_SEQ_START = "\x1E";
 export const JSON_SEQ_END = "\n";
 

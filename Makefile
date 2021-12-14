@@ -53,3 +53,7 @@ ensure-licensed:
 > fi
 .PHONY: ensure-licensed
 .SILENT: ensure-licensed
+
+bump-version:
+> npx standard-version@^9.3.2
+.PHONY: bump-version

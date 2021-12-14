@@ -30,7 +30,6 @@ JSON value: { message: "bye" }
 
 ## Roadmap
 
-- Publish on deno.land
 - Implement stream encoding
 - Review the non-strict decoding behaviour and more closely follow the lenient
   handling of malformed streams described in the RFC

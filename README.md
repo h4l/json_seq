@@ -30,10 +30,11 @@ JSON value: { message: "bye" }
 
 ## Roadmap
 
-- Implement stream encoding
-- Review the non-strict decoding behaviour and more closely follow the lenient
-  handling of malformed streams described in the RFC
-  - Maybe allow visibility of/control over malformed stream recovery actions
+- [x] Publish on deno.land
+- [ ] Implement stream encoding
+- [ ] Review the non-strict decoding behaviour and more closely follow the
+  lenient handling of malformed streams described in the RFC
+  - [ ] Maybe allow visibility of/control over malformed stream recovery actions
 
 ## Contributing
 

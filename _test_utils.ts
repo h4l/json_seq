@@ -16,9 +16,9 @@ export function enlargen(chunk: string, length: number): string {
   return chunk.repeat(Math.ceil(length / chunk.length)).substring(0, length);
 }
 
-export function jsonSeqChunk<Content extends string = string>(
-  content: Content,
-): `${typeof JSON_SEQ_START}${Content}${typeof JSON_SEQ_END}` {
+export function jsonSeqChunk(
+  content: string,
+): `${typeof JSON_SEQ_START}${string}${typeof JSON_SEQ_END}` {
   return `${JSON_SEQ_START}${content}${JSON_SEQ_END}`;
 }
 

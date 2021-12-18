@@ -8,7 +8,6 @@ import {
   JSON_SEQ_START,
   JsonSequenceDecoderStream,
 } from "./mod.ts";
-import { readableStreamFromIterable } from "https://deno.land/std@0.117.0/streams/mod.ts";
 import {
   assertStreamContainsChunks,
   chunkify,

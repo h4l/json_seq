@@ -31,8 +31,11 @@ export async function recordStreamEvents<
   const dest = new WritableStream(sink);
   try {
     await stream.pipeTo(dest);
-  } catch {
-    // error should have resulted in an abort event being recorded by the sink
+  } catch (e) {
+    // Error should have resulted in an abort event being recorded by the sink.
+    // If so then assume it's expected and carry on returning the events,
+    // otherwise something else has failed, so fail with an AssertionError
+    assertEquals([{ type: "abort", reason: e }], sink.events("abort"));
   }
   return sink.events(...eventTypes);
 }

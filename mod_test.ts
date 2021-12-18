@@ -1,6 +1,11 @@
 // Copyright 2021 Hal Blackburn. All rights reserved. MIT license.
 
-import { assert, assertEquals } from "./dev_deps.ts";
+import {
+  assert,
+  assertEquals,
+  readableStreamFromIterable,
+  unreachable,
+} from "./dev_deps.ts";
 import {
   _jsonSeqDelimiterTransformer,
   _stringToJSONTransformer,
@@ -8,7 +13,6 @@ import {
   JSON_SEQ_START,
   JsonSequenceDecoderStream,
 } from "./mod.ts";
-import { readableStreamFromIterable } from "https://deno.land/std@0.117.0/streams/mod.ts";
 import {
   assertStreamContainsChunks,
   chunkify,
@@ -248,5 +252,35 @@ Deno.test("JSON Sequence ReadableStreams are async iterable", async () => {
 
   for await (const val of stream) {
     assertEquals(val, values.shift());
+  }
+});
+
+Deno.test("[JsonSequenceDecoderStream] errors propagate upstream", async () => {
+  let srcCancelled = false;
+  let destAborted = false;
+  const src = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(jsonSeqChunk("invalid")));
+    },
+    cancel(reason) {
+      srcCancelled = true;
+      assert(reason instanceof SyntaxError);
+    },
+  });
+  const tx = new JsonSequenceDecoderStream();
+  const dest = new WritableStream({
+    abort(reason) {
+      destAborted = true;
+      assert(reason instanceof SyntaxError);
+    },
+  });
+
+  try {
+    await src.pipeThrough(tx).pipeTo(dest);
+    unreachable();
+  } catch (e) {
+    assert(srcCancelled);
+    assert(destAborted);
+    assert(e instanceof SyntaxError);
   }
 });

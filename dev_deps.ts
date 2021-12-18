@@ -6,3 +6,4 @@ export {
   assertThrows,
   unreachable,
 } from "https://deno.land/std@0.117.0/testing/asserts.ts";
+export { readableStreamFromIterable } from "https://deno.land/std@0.117.0/streams/mod.ts";

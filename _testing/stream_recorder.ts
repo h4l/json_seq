@@ -1,10 +1,11 @@
+import { assertEquals } from "../dev_deps.ts";
+
 /**
  * Pipe the `stream` into a `WritableStream` and record all the actions that
  * the actions it receives.
  *
  * A Promise is returned which is resolved when the `stream`'s pipe has
- * completed. The resolved value is the list of recorded events, or if the pipe
- * failed with an error, the returned Promise is rejected with that error.
+ * completed. The resolved value is the list of recorded events.
  */
 export async function recordStreamEvents<
   T,
@@ -95,4 +96,47 @@ class EventRecorderSink<T> implements UnderlyingSink<T> {
     ): event is SinkEventsOfType<T, ET> => _types.has(event.type));
     return selected;
   }
+}
+
+export type AssertRecordedEventsMatchExpectations<T> = {
+  /**
+   * Require that exactly these chunks in this order were recorded. Zero chunks
+   * are expected if unspecified.
+   */
+  chunks?: ReadonlyArray<T>;
+  /**
+   * `true` if the `events` must end with an `"abort"` event.
+   * If `false` or unspecified, a `"close"` event is expected.
+   */
+  abort?: boolean;
+};
+
+/**
+ * Make an assertion that the `events` list contains expected chunks and ends
+ * with the expected `"close"` or `"abort"`.
+ */
+export function assertRecordedEventsMatch<T>(
+  events: ReadonlyArray<SinkEvent<T>>,
+  expectations?: AssertRecordedEventsMatchExpectations<T>,
+): void {
+  const { chunks, abort } = expectations ?? {};
+  const expected: NormalisedSinkEvent<T>[] = [
+    ...(events.at(0)?.type === "start" ? [{ type: "start" } as const] : []),
+    ...(chunks ?? []).map((chunk) => ({ type: "write", chunk } as const)),
+    abort ? { type: "abort", reason: "*any*" } : { type: "close" },
+  ];
+  assertEquals(normaliseEventsForEquality(events), expected);
+}
+
+// Could allow specifying a key function for reason if actual matching is
+// needed. E.g. match a regex by using the match's groups as the equality key.
+
+type AnySinkAbort = Omit<SinkAbort, "reason"> & { reason: "*any*" };
+type NormalisedSinkEvent<T> = Exclude<SinkEvent<T>, SinkAbort> | AnySinkAbort;
+function normaliseEventsForEquality<T>(
+  events: ReadonlyArray<SinkEvent<T>>,
+): NormalisedSinkEvent<T>[] {
+  return events.map((event) =>
+    event.type === "abort" ? { type: "abort", reason: "*any*" } : event
+  );
 }

@@ -230,3 +230,38 @@ Deno.test("closing an upstream stream in a pipe closes the dest", async () => {
   await upstream.pipeTo(downstream);
   assert(downstreamClosed);
 });
+
+Deno.test("errors in a Transformer cancel the source and abort the dest streams", async () => {
+  let srcCancelled = false;
+  let destAborted = false;
+  const expectedError = new Error("Example Error: foo");
+  const src = new ReadableStream({
+    start(controller) {
+      controller.enqueue("foo");
+    },
+    cancel(reason) {
+      srcCancelled = true;
+      assertEquals(reason, expectedError);
+    },
+  });
+  const tx = new TransformStream({
+    transform(chunk, controller) {
+      controller.error(new Error(`Example Error: ${chunk}`));
+    },
+  });
+  const dest = new WritableStream({
+    abort(reason) {
+      destAborted = true;
+      assertEquals(reason, expectedError);
+    },
+  });
+
+  try {
+    await src.pipeThrough(tx).pipeTo(dest);
+    unreachable();
+  } catch (e) {
+    assert(srcCancelled);
+    assert(destAborted);
+    assertEquals(e, expectedError);
+  }
+});

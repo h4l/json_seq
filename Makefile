@@ -41,6 +41,39 @@ test:
 > deno test
 .PHONY: test
 
+test-leaks:
+# We have tests that intentionally trigger resource leaks. We need to run these
+# one-by-one, otherwise it's not possible to know if any individual leaking test
+# is/isn't leaking.
+# We do this by running the test suite filtering on only leaking tests to
+# discover their names (leaking tests are skipped run unless an envar is set).
+# Then run each one individually by name.
+> run_leaking_test () {
+>   TEST_NAME="$${1:?}"
+>   export ENABLE_LEAKING_TESTS=1
+>   status=0
+>   echo -e "\n- test $$TEST_NAME"
+>   output="$$(deno test --allow-env=ENABLE_LEAKING_TESTS --filter "$$TEST_NAME" 2>&1)" || status=$$?
+>   echo "  |" 1>&2
+>   <<<"$$output" grep -v '^running 0 tests from file://' | sed 's/^/  |  /' 1>&2
+>   echo "  +-----------------------------------------------------------------------------" 1>&2
+>   if [[ $$status -eq 0 ]]; then
+>     echo "  | FAIL: the leaking test unexpectedly passed" 1>&2
+>     result_status=1
+>   else
+>     echo "  | MAYBE PASS: the leaking test failed as expected, but output requires manual verification..." 1>&2
+>   fi
+>   echo "  +-----------------------------------------------------------------------------" 1>&2
+>   exit $${result_status:0}
+> }
+> export -f run_leaking_test
+> deno test --filter '[💦 LEAKING TEST 💦]' \
+  | grep --only-matching -P '(?<=^test )(.*\[💦 LEAKING TEST 💦\].*)(?= ... .*$$)' \
+  | tr '\n' '\000' \
+  | xargs -0 -I '{}' bash -c 'run_leaking_test "$${1:?}"' -- '{}'
+.PHONY: test-leaks
+.SILENT: test-leaks
+
 ensure-licensed:
 > UNLICENSED="$$(\
   find . -name '*.ts' -not -path './examples/*' -exec \

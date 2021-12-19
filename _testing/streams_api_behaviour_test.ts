@@ -1,4 +1,5 @@
 import { assert, assertEquals, delay, unreachable } from "../dev_deps.ts";
+import { ENABLE_LEAKING_TESTS, LEAKING_TEST_SUFFIX } from "./leaking_tests.ts";
 import { ALL_EVENTS, recordStreamEvents } from "./stream_recorder.ts";
 
 /*
@@ -265,3 +266,32 @@ Deno.test("errors in a Transformer cancel the source and abort the dest streams"
     assertEquals(e, expectedError);
   }
 });
+
+/*
+ * An unresolved promise is leaked if a ReadableStream's controller is not
+ * explicitly closed.
+ */
+for (const callClose of [true, false]) {
+  Deno.test({
+    ignore: !callClose && !ENABLE_LEAKING_TESTS,
+    name: `ReadableStream ${
+      callClose ? "does not leak" : "leaks"
+    } promise if controller.close() ${
+      callClose ? "is" : "is not"
+    } explicitly called${callClose ? "" : ` ${LEAKING_TEST_SUFFIX}`}`,
+    fn: async () => {
+      const src = new ReadableStream({
+        start(controller) {
+          controller.enqueue("foo");
+          if (callClose) {
+            controller.close();
+          }
+        },
+      });
+      const reader = src.getReader();
+      assertEquals(await reader.read(), { done: false, value: "foo" });
+      assertEquals(await reader.read(), { done: true, value: undefined });
+      await reader.closed;
+    },
+  });
+}

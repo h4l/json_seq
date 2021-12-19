@@ -14,6 +14,10 @@ import {
   JsonSequenceDecoderStream,
 } from "./mod.ts";
 import {
+  ENABLE_LEAKING_TESTS,
+  LEAKING_TEST_SUFFIX,
+} from "./_testing/leaking_tests.ts";
+import {
   assertStreamContainsChunks,
   chunkify,
   enlargen,
@@ -255,32 +259,39 @@ Deno.test("JSON Sequence ReadableStreams are async iterable", async () => {
   }
 });
 
-Deno.test("[JsonSequenceDecoderStream] errors propagate upstream", async () => {
-  let srcCancelled = false;
-  let destAborted = false;
-  const src = new ReadableStream<Uint8Array>({
-    start(controller) {
-      controller.enqueue(new TextEncoder().encode(jsonSeqChunk("invalid")));
-    },
-    cancel(reason) {
-      srcCancelled = true;
-      assert(reason instanceof SyntaxError);
-    },
-  });
-  const tx = new JsonSequenceDecoderStream();
-  const dest = new WritableStream({
-    abort(reason) {
-      destAborted = true;
-      assert(reason instanceof SyntaxError);
-    },
-  });
+// This is failing due to the TextDecoderStream resource leak, see
+// _testing/text_decoder_stream_behaviour_test.ts
+Deno.test({
+  ignore: !ENABLE_LEAKING_TESTS,
+  name:
+    `[JsonSequenceDecoderStream] errors propagate upstream ${LEAKING_TEST_SUFFIX}`,
+  fn: async () => {
+    let srcCancelled = false;
+    let destAborted = false;
+    const src = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(jsonSeqChunk("invalid")));
+      },
+      cancel(reason) {
+        srcCancelled = true;
+        assert(reason instanceof SyntaxError);
+      },
+    });
+    const tx = new JsonSequenceDecoderStream();
+    const dest = new WritableStream({
+      abort(reason) {
+        destAborted = true;
+        assert(reason instanceof SyntaxError);
+      },
+    });
 
-  try {
-    await src.pipeThrough(tx).pipeTo(dest);
-    unreachable();
-  } catch (e) {
-    assert(srcCancelled);
-    assert(destAborted);
-    assert(e instanceof SyntaxError);
-  }
+    try {
+      await src.pipeThrough(tx).pipeTo(dest);
+      unreachable();
+    } catch (e) {
+      assert(srcCancelled);
+      assert(destAborted);
+      assert(e instanceof SyntaxError);
+    }
+  },
 });

@@ -1,5 +1,5 @@
 export interface Reducer<Accumulation, Value> {
-  init?: () => Accumulation;
+  init: () => Accumulation;
   complete: (accumulation: Accumulation) => Accumulation;
   // TODO: rename reduce to step?
   reduce: (accumulation: Accumulation, value: Value) => Accumulation;
@@ -27,8 +27,8 @@ export function transducer<A, IV, OV>(
   return (step: Reducer<A, OV>) => {
     const partial = spec(step);
     return {
-      init: partial.init ?? (step.init && step.init.bind(step)),
-      complete: partial.complete ?? step.complete.bind(step),
+      init: partial.init ?? (() => step.init()),
+      complete: partial.complete ?? ((a) => step.complete(a)),
       reduce: partial.reduce.bind(partial),
     };
   };
@@ -37,10 +37,8 @@ export function transducer<A, IV, OV>(
 export const mapping = function <X, Y, Accumulation>(
   f: (x: X) => Y,
 ): Transducer<Accumulation, X, Accumulation, Y> {
-  return (
-    step: Reducer<Accumulation, Y>,
-  ): Reducer<Accumulation, X> => ({
-    init: step.init && step.init.bind(step),
+  return (step: Reducer<Accumulation, Y>): Reducer<Accumulation, X> => ({
+    init: () => step.init(),
     complete: (accumulation) => step.complete(accumulation),
     reduce: (accumulation, value) => step.reduce(accumulation, f(value)),
   });
@@ -49,9 +47,7 @@ export const mapping = function <X, Y, Accumulation>(
 export const mapping2 = function <X, Y, Accumulation>(
   f: (x: X) => Y,
 ): Transducer<Accumulation, X, Accumulation, Y> {
-  return transducer((
-    step: Reducer<Accumulation, Y>,
-  ) => ({
+  return transducer((step: Reducer<Accumulation, Y>) => ({
     reduce: (accumulation, value) => step.reduce(accumulation, f(value)),
   }));
 };

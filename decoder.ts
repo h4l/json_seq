@@ -61,7 +61,7 @@ export function decodeText<Accumulation>(
 ): Reducer<Accumulation, Uint8Array> {
   const decoder = new TextDecoder();
   return {
-    init: step.init && step.init.bind(step),
+    init: () => step.init(),
     complete: (accumulation) => {
       const finalValue = decoder.decode();
       return finalValue

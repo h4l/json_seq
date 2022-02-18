@@ -1,4 +1,4 @@
-import { Reducer, Transducer, transducer } from "./transducers2.ts";
+import { Reducer, transducer } from "./transducers.ts";
 
 // deno-lint-ignore no-control-regex
 const SEPARATOR = /\x1E/m;

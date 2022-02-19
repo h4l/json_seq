@@ -1,4 +1,5 @@
 import { assertEquals } from "../dev_deps.ts";
+import { transduce } from "../transducers.ts";
 import { testingReducer } from "../_testing.ts";
 import { JSONSeqFragment, splitJSONSeq } from "./split_json_seq.ts";
 
@@ -62,12 +63,10 @@ const splitChunkExamples: ReadonlyArray<
 
 splitChunkExamples.forEach((example, i) => {
   Deno.test(`reduce() splits input chunks [${i + 1}/${splitChunkExamples.length}]`, () => {
-    const reducer = splitJSONSeq(testingReducer());
-    let state = reducer.init();
-    state = reducer.reduce(state, example.chunk);
+    const state = transduce(splitJSONSeq, testingReducer(), [example.chunk]);
     assertEquals(state, {
       initCount: 1,
-      completeCount: 0,
+      completeCount: 1,
       values: example.split,
     });
   });

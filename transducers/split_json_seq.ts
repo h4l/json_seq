@@ -4,14 +4,22 @@ import { Reducer, transducer } from "../transducers.ts";
 const SEPARATOR = /\x1E/m;
 // deno-lint-ignore no-control-regex
 const TOKEN_CONTENT = /[^\x1E]/m;
-export type ChunkSection = { text: string } | { separators: number };
+
+export type PossibleJSONFragment = Readonly<
+  { type: "PossibleJSONFragment"; text: string }
+>;
+export type JSONSeqSeparators = Readonly<{
+  type: "JSONSeqSeparators";
+  separators: number;
+}>;
+export type JSONSeqFragment = PossibleJSONFragment | JSONSeqSeparators;
 
 /**
  * Partition a JSON Text Sequence stream into chunks which are either text, or
  * separators.
  */
 export const splitJSONSeq: <A>(
-  step: Reducer<A, ChunkSection>,
+  step: Reducer<A, JSONSeqFragment>,
 ) => Reducer<A, string> = transducer((step) => {
   return {
     reduce: (accumulation, chunk) => {
@@ -20,6 +28,7 @@ export const splitJSONSeq: <A>(
         separatorStart = separatorStart < 0 ? chunk.length : separatorStart;
         if (separatorStart > 0) {
           accumulation = step.reduce(accumulation, {
+            type: "PossibleJSONFragment",
             text: chunk.substring(0, separatorStart),
           });
           chunk = chunk.substring(separatorStart);
@@ -27,7 +36,10 @@ export const splitJSONSeq: <A>(
         let textStart = chunk.search(TOKEN_CONTENT);
         textStart = textStart < 0 ? chunk.length : textStart;
         if (textStart > 0) {
-          accumulation = step.reduce(accumulation, { separators: textStart });
+          accumulation = step.reduce(accumulation, {
+            type: "JSONSeqSeparators",
+            separators: textStart,
+          });
           chunk = chunk.substring(textStart);
         }
       }

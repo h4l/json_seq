@@ -1,6 +1,6 @@
 import { assertEquals } from "../dev_deps.ts";
 import { testingReducer } from "../_testing.ts";
-import { splitJSONSeq } from "./split_json_seq.ts";
+import { JSONSeqFragment, splitJSONSeq } from "./split_json_seq.ts";
 
 const RS = "\x1E";
 
@@ -15,27 +15,50 @@ Deno.test("complete() calls complete()", () => {
   assertEquals(state, { initCount: 1, completeCount: 1, values: [] });
 });
 
-const splitChunkExamples = [
+const splitChunkExamples: ReadonlyArray<
+  { chunk: string; split: ReadonlyArray<JSONSeqFragment> }
+> = [
   { chunk: "", split: [] },
-  { chunk: "foo", split: [{ text: "foo" }] },
-  { chunk: `${RS}`, split: [{ separators: 1 }] },
-  { chunk: `${RS}${RS}`, split: [{ separators: 2 }] },
-  { chunk: `${RS}${RS}foo`, split: [{ separators: 2 }, { text: "foo" }] },
+  { chunk: "foo", split: [{ type: "PossibleJSONFragment", text: "foo" }] },
+  { chunk: `${RS}`, split: [{ type: "JSONSeqSeparators", separators: 1 }] },
+  {
+    chunk: `${RS}${RS}`,
+    split: [{ type: "JSONSeqSeparators", separators: 2 }],
+  },
+  {
+    chunk: `${RS}${RS}foo`,
+    split: [
+      { type: "JSONSeqSeparators", separators: 2 },
+      { type: "PossibleJSONFragment", text: "foo" },
+    ],
+  },
   {
     chunk: `foo${RS}${RS}bar`,
-    split: [{ text: "foo" }, { separators: 2 }, { text: "bar" }],
+    split: [
+      { type: "PossibleJSONFragment", text: "foo" },
+      { type: "JSONSeqSeparators", separators: 2 },
+      { type: "PossibleJSONFragment", text: "bar" },
+    ],
   },
   {
     chunk: `${RS}foo${RS}${RS}bar${RS}`,
-    split: [{ separators: 1 }, { text: "foo" }, { separators: 2 }, {
-      text: "bar",
-    }, { separators: 1 }],
+    split: [
+      { type: "JSONSeqSeparators", separators: 1 },
+      { type: "PossibleJSONFragment", text: "foo" },
+      { type: "JSONSeqSeparators", separators: 2 },
+      { type: "PossibleJSONFragment", text: "bar" },
+      { type: "JSONSeqSeparators", separators: 1 },
+    ],
   },
   {
     chunk: `${RS}foo\nbar${RS}`,
-    split: [{ separators: 1 }, { text: "foo\nbar" }, { separators: 1 }],
+    split: [
+      { type: "JSONSeqSeparators", separators: 1 },
+      { type: "PossibleJSONFragment", text: "foo\nbar" },
+      { type: "JSONSeqSeparators", separators: 1 },
+    ],
   },
-] as const;
+];
 
 splitChunkExamples.forEach((example, i) => {
   Deno.test(`reduce() splits input chunks [${i + 1}/${splitChunkExamples.length}]`, () => {

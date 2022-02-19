@@ -82,3 +82,21 @@ export function compose<
     step: Reducer<InnerOutputAccumulation, InnerOutputValue>,
   ): Reducer<OuterInputAccumulation, OuterInputValue> => outer(inner(step));
 }
+
+/** Transform values with a Transducer, accumulating the resulting values with a
+ * Reducer.
+ */
+export function transduce<Accumulation, InputValue, OutputValue>(
+  transducer: Transducer<Accumulation, InputValue, Accumulation, OutputValue>,
+  reducer: Reducer<Accumulation, OutputValue>,
+  values: Iterable<InputValue>,
+  initial?: Accumulation,
+): Accumulation {
+  const transformedReducer = transducer(reducer);
+  let accumulation = initial ?? transformedReducer.init();
+  for (const value of values) {
+    accumulation = transformedReducer.reduce(accumulation, value);
+  }
+  accumulation = transformedReducer.complete(accumulation);
+  return accumulation;
+}

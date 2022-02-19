@@ -1,5 +1,3 @@
-// Copyright 2021 Hal Blackburn. All rights reserved. MIT license.
-
 import { assert, assertEquals } from "./dev_deps.ts";
 import { JSON_SEQ_END, JSON_SEQ_START } from "./mod.ts";
 

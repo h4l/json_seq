@@ -25,7 +25,7 @@ clean:
 > rm -rf .out
 .PHONY: clean
 
-lint: ensure-licensed
+lint:
 > deno lint
 .PHONY: lint
 
@@ -40,19 +40,6 @@ apply-format:
 test:
 > deno test
 .PHONY: test
-
-ensure-licensed:
-> UNLICENSED="$$(\
-  find . -name '*.ts' -not -path './examples/*' -exec \
-    grep -FL '// Copyright 2021 Hal Blackburn. All rights reserved. MIT license.' {} + \
-    || test $$? -eq 1 \
-  )"
-> if [[ $$UNLICENSED != "" ]]; then
->   echo -e "Error: Not all modules contain the copyright header:\n$$UNLICENSED" 2>&1
->   exit 1
-> fi
-.PHONY: ensure-licensed
-.SILENT: ensure-licensed
 
 bump-version:
 > npx standard-version@^9.3.2

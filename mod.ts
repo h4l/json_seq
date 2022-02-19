@@ -1,5 +1,3 @@
-// Copyright 2021 Hal Blackburn. All rights reserved. MIT license.
-
 /* This module implements the text format, described in [RFC 7464], to
  * represent streams of individual JSON objects (application/json-seq). See
  * [format_notes.md](format_notes.md)

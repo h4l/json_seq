@@ -19,33 +19,29 @@ const mergeAdjacentExamples: ReadonlyArray<
 > = [
   { inputs: [], outputs: [] },
   {
-    name: "single separator",
-    inputs: [{ type: "JSONSeqSeparators", separators: 1 }],
-    outputs: [{ type: "JSONSeqSeparators", separators: 1 }],
+    name: "single element",
+    inputs: [
+      { type: "JSONSeqSeparators", separators: 1 },
+      { type: "PossibleJSONFragment", text: "foo" },
+    ],
+    outputs: [
+      { type: "PossibleJSON", text: "foo", leadingSeparators: 1 },
+    ],
   },
   {
-    name: "adjacent separators",
+    name: "single element, multiple fragments",
     inputs: [
       { type: "JSONSeqSeparators", separators: 1 },
       { type: "JSONSeqSeparators", separators: 2 },
-    ],
-    outputs: [{ type: "JSONSeqSeparators", separators: 3 }],
-  },
-  {
-    name: "single fragment",
-    inputs: [{ type: "PossibleJSONFragment", text: "foo" }],
-    outputs: [{ type: "PossibleJSON", text: "foo" }],
-  },
-  {
-    name: "adjacent fragments",
-    inputs: [
       { type: "PossibleJSONFragment", text: "f" },
       { type: "PossibleJSONFragment", text: "oo" },
     ],
-    outputs: [{ type: "PossibleJSON", text: "foo" }],
+    outputs: [
+      { type: "PossibleJSON", text: "foo", leadingSeparators: 3 },
+    ],
   },
   {
-    name: "interleaved fragments",
+    name: "multiple elements",
     inputs: [
       { type: "JSONSeqSeparators", separators: 1 },
       { type: "JSONSeqSeparators", separators: 2 },
@@ -58,26 +54,50 @@ const mergeAdjacentExamples: ReadonlyArray<
       { type: "PossibleJSONFragment", text: "baz" },
     ],
     outputs: [
-      { type: "JSONSeqSeparators", separators: 3 },
-      { type: "PossibleJSON", text: "foo" },
-      { type: "JSONSeqSeparators", separators: 1 },
-      { type: "PossibleJSON", text: "bar" },
-      { type: "JSONSeqSeparators", separators: 2 },
-      { type: "PossibleJSON", text: "baz" },
+      { type: "PossibleJSON", text: "foo", leadingSeparators: 3 },
+      { type: "PossibleJSON", text: "bar", leadingSeparators: 1 },
+      { type: "PossibleJSON", text: "baz", leadingSeparators: 2 },
     ],
   },
   {
-    name: "oversized input fragments are caught",
+    name: "single separator with no text",
+    inputs: [{ type: "JSONSeqSeparators", separators: 1 }],
+    outputs: [{ type: "TrailingSeparators", separators: 1 }],
+  },
+  {
+    name: "multiple separators with no text",
+    inputs: [
+      { type: "JSONSeqSeparators", separators: 1 },
+      { type: "JSONSeqSeparators", separators: 2 },
+    ],
+    outputs: [{ type: "TrailingSeparators", separators: 3 }],
+  },
+  {
+    name: "single text fragment with no separators",
+    inputs: [{ type: "PossibleJSONFragment", text: "foo" }],
+    outputs: [{ type: "LeadingNonSeparators", text: "foo" }],
+  },
+  {
+    name: "multiple text fragments with no separators",
+    inputs: [
+      { type: "PossibleJSONFragment", text: "f" },
+      { type: "PossibleJSONFragment", text: "oo" },
+    ],
+    outputs: [{ type: "LeadingNonSeparators", text: "foo" }],
+  },
+
+  {
+    name: "oversized fragment without separators",
     options: { maxStringLength: 4 },
     inputs: [
       { type: "PossibleJSONFragment", text: "12345" },
     ],
     outputs: [
-      { type: "OversizedPossibleJSONSection", prefix: "1234", length: 5 },
+      { type: "LeadingNonSeparators", prefix: "1234", length: 5 },
     ],
   },
   {
-    name: "oversized strings from merging undersize fragments are caught",
+    name: "multiple oversized fragmetns without separators",
     options: { maxStringLength: 4 },
     inputs: [
       { type: "PossibleJSONFragment", text: "123" },
@@ -85,25 +105,14 @@ const mergeAdjacentExamples: ReadonlyArray<
       { type: "PossibleJSONFragment", text: "789" },
     ],
     outputs: [
-      { type: "OversizedPossibleJSONSection", prefix: "1234", length: 9 },
-    ],
-  },
-  {
-    name: "undersize fragments merged into oversize fragments are caught",
-    options: { maxStringLength: 4 },
-    inputs: [
-      { type: "PossibleJSONFragment", text: "12345" },
-      { type: "PossibleJSONFragment", text: "678" },
-      { type: "PossibleJSONFragment", text: "9ab" },
-    ],
-    outputs: [
-      { type: "OversizedPossibleJSONSection", prefix: "1234", length: 11 },
+      { type: "LeadingNonSeparators", prefix: "1234", length: 9 },
     ],
   },
   {
     name: "interleaved fragments with oversize strings",
     options: { maxStringLength: 4 },
     inputs: [
+      { type: "PossibleJSONFragment", text: "abc" },
       { type: "JSONSeqSeparators", separators: 1 },
       { type: "JSONSeqSeparators", separators: 2 },
       { type: "PossibleJSONFragment", text: "f" },
@@ -120,15 +129,22 @@ const mergeAdjacentExamples: ReadonlyArray<
       { type: "JSONSeqSeparators", separators: 1 },
     ],
     outputs: [
-      { type: "JSONSeqSeparators", separators: 3 },
-      { type: "PossibleJSON", text: "foo" },
-      { type: "JSONSeqSeparators", separators: 1 },
-      { type: "OversizedPossibleJSONSection", prefix: "barb", length: 6 },
-      { type: "JSONSeqSeparators", separators: 2 },
-      { type: "OversizedPossibleJSONSection", prefix: "bazb", length: 12 },
-      { type: "JSONSeqSeparators", separators: 1 },
-      { type: "PossibleJSON", text: "baz" },
-      { type: "JSONSeqSeparators", separators: 1 },
+      { type: "LeadingNonSeparators", text: "abc" },
+      { type: "PossibleJSON", text: "foo", leadingSeparators: 3 },
+      {
+        type: "OversizedPossibleJSON",
+        prefix: "barb",
+        length: 6,
+        leadingSeparators: 1,
+      },
+      {
+        type: "OversizedPossibleJSON",
+        prefix: "bazb",
+        length: 12,
+        leadingSeparators: 2,
+      },
+      { type: "PossibleJSON", text: "baz", leadingSeparators: 1 },
+      { type: "TrailingSeparators", separators: 1 },
     ],
   },
 ];
@@ -162,11 +178,14 @@ Deno.test("default maxStringLength is DEFAULT_MAX_STRING_LENGTH", () => {
   const state = transduce(
     mergeAdjacent<TestingReducerState<JSONSeqElement>>(),
     testingReducer(),
-    [{ type: "PossibleJSONFragment", text: oversizeText }],
+    [{ type: "JSONSeqSeparators", separators: 1 }, {
+      type: "PossibleJSONFragment",
+      text: oversizeText,
+    }],
   );
   assert(state.values.length === 1);
   const [x] = state.values;
-  assert(x.type === "OversizedPossibleJSONSection");
+  assert(x.type === "OversizedPossibleJSON");
   assertEquals(x.length, DEFAULT_MAX_STRING_LENGTH + 1);
   assert(x.prefix === oversizeText.substring(0, DEFAULT_MAX_STRING_LENGTH));
 });

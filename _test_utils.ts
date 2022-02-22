@@ -32,3 +32,41 @@ export async function assertStreamContainsChunks<T>(
   const result = await reader.read();
   assertEquals(result, { done: true, value: undefined });
 }
+
+/** An identity function used to assert that a particular type is expected. */
+export const expectType = <T>(t: T): T => t;
+
+/** The type of the values of the `ArrayType` array. */
+type ArrayElement<ArrayType> = ArrayType extends readonly unknown[]
+  ? (ArrayType extends (infer T)[] ? T : never)
+  : never;
+
+/** The tuple type of one value from each array of `Columns`. */
+type Row<Columns> = Columns extends [] ? []
+  : (Columns extends [infer Col1, ...infer Cols]
+    ? [ArrayElement<Col1>, ...Row<Cols>]
+    : never);
+
+/** Cartesian product of columns.
+ *
+ * Equivalent to nested for loops of each col array.
+ */
+export function* product<Columns extends unknown[][]>(
+  ...cols: Columns
+): Generator<Row<Columns>> {
+  const rowCount = cols.length === 0
+    ? 0
+    : cols.reduce((length, set) => length * set.length, 1);
+  const emitCounts = cols.map((_, i) => {
+    return cols.slice(0, i).reduce((n, set) => n * set.length, 1);
+  });
+  for (let rowIndex = 0; rowIndex < rowCount; ++rowIndex) {
+    const row = [] as unknown[];
+    for (let colIndex = 0; colIndex < cols.length; ++colIndex) {
+      const set = cols[colIndex];
+      const setIndex = Math.floor(rowIndex / emitCounts[colIndex]) % set.length;
+      row[colIndex] = set[setIndex];
+    }
+    yield row as Row<Columns>;
+  }
+}
